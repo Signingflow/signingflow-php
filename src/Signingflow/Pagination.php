@@ -16,29 +16,85 @@ final class ApiList
     ) {
     }
 
-    public function all(): \Generator
+    public function all(): \Iterator
     {
-        $page = $this;
-        $load = $page->load;
-        $seen = [];
-        $pages = 0;
-        while (true) {
-            foreach ($page->data as $item) {
-                yield $item;
-            }
-            $token = $page->nextPageToken;
-            if ($token === '' || $load === null) {
+        return new ApiListIterator($this);
+    }
+}
+
+final class ApiListIterator implements \Iterator
+{
+    private ApiList $page;
+
+    private mixed $load;
+
+    private int $index = 0;
+
+    private int $pages = 0;
+
+    private int $position = 0;
+
+    private bool $finished = false;
+
+    /** @var array<string, true> */
+    private array $seen = [];
+
+    public function __construct(ApiList $first)
+    {
+        $this->page = $first;
+        $this->load = $first->load;
+    }
+
+    public function rewind(): void
+    {
+        if ($this->position !== 0 || $this->index !== 0 || $this->pages !== 0) {
+            throw new \LogicException('An API list can only be iterated once.');
+        }
+    }
+
+    public function valid(): bool
+    {
+        if ($this->finished) {
+            return false;
+        }
+        $this->pull();
+
+        return !$this->finished && $this->index < count($this->page->data);
+    }
+
+    public function current(): mixed
+    {
+        return $this->page->data[$this->index];
+    }
+
+    public function key(): int
+    {
+        return $this->position;
+    }
+
+    public function next(): void
+    {
+        $this->index++;
+        $this->position++;
+        $this->pull();
+    }
+
+    private function pull(): void
+    {
+        while (!$this->finished && $this->index >= count($this->page->data)) {
+            $token = $this->page->nextPageToken;
+            if ($token === '' || $this->load === null || isset($this->seen[$token])) {
+                $this->finished = true;
+
                 return;
             }
-            if (isset($seen[$token])) {
-                return;
-            }
-            $pages++;
-            if ($pages > self::MAX_PAGES) {
+            $this->pages++;
+            if ($this->pages > ApiList::MAX_PAGES) {
                 throw new InvalidRequestError('Too many pages.');
             }
-            $seen[$token] = true;
-            $page = $load($token);
+            $this->seen[$token] = true;
+            $this->page = ($this->load)($token);
+            $this->index = 0;
         }
     }
 }
