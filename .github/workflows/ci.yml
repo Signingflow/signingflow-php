@@ -41,4 +41,6 @@ jobs:
           '
       - name: Publish coverage badge
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.php == '8.3'
+        env:
+          GITHUB_TOKEN: ${{ github.token }}
         run: bash .github/publish-coverage-badge.sh "$(cat .coverage-percent)"
