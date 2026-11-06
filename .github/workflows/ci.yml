@@ -1,0 +1,36 @@
+name: SDK PHP
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        php: ["8.3", "8.5"]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: shivammathur/setup-php@v2
+        with:
+          php-version: ${{ matrix.php }}
+          coverage: xdebug
+          extensions: curl, ffi
+      - run: composer update --no-interaction --prefer-dist
+      - run: |
+          XDEBUG_MODE=coverage php -d memory_limit=1G -d ffi.enable=true vendor/bin/phpunit --coverage-text | tee coverage.txt
+          php -r '
+          $text = file_get_contents("coverage.txt");
+          preg_match("/Lines:\s+([0-9.]+)%/", $text, $lines);
+          preg_match("/Branches:\s+([0-9.]+)%/", $text, $branches);
+          if ($lines === [] || $branches === []) {
+              fwrite(STDERR, $text);
+              exit(1);
+          }
+          echo "lines {$lines[1]}% branches {$branches[1]}%\n";
+          if ((float) $lines[1] < 80 || (float) $branches[1] < 80) {
+              exit(1);
+          }
+          '
