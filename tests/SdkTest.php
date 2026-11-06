@@ -49,13 +49,52 @@ final class SdkTest extends TestCase
     {
         self::$cert = sys_get_temp_dir().'/signingflow-php-test.pem';
         self::$key = sys_get_temp_dir().'/signingflow-php-test.key';
-        if (!is_file(self::$cert)) {
-            $command = 'openssl req -x509 -newkey rsa:2048 -keyout '.escapeshellarg(self::$key).' -out '.escapeshellarg(self::$cert).' -days 1 -nodes -subj /CN=127.0.0.1 -addext subjectAltName=IP:127.0.0.1';
-            exec($command, $output, $code);
-            if ($code !== 0) {
-                throw new RuntimeException('openssl failed');
-            }
+        if (!is_file(self::$cert) || !is_file(self::$key)) {
+            self::writeCertificate();
         }
+    }
+
+    private static function writeCertificate(): void
+    {
+        $config = sys_get_temp_dir().'/signingflow-php-openssl.cnf';
+        file_put_contents($config, <<<'CNF'
+openssl_conf = openssl_init
+
+[openssl_init]
+providers = provider_sect
+
+[provider_sect]
+default = default_sect
+
+[default_sect]
+activate = 1
+
+[req]
+distinguished_name = dn
+x509_extensions = v3
+prompt = no
+
+[dn]
+CN = 127.0.0.1
+
+[v3]
+subjectAltName = IP:127.0.0.1
+basicConstraints = CA:TRUE
+CNF);
+        $options = [
+            'private_key_bits' => 2048,
+            'private_key_type' => OPENSSL_KEYTYPE_RSA,
+            'config' => $config,
+        ];
+        $key = openssl_pkey_new($options);
+        $csr = $key === false ? false : openssl_csr_new(['commonName' => '127.0.0.1'], $key, ['digest_alg' => 'sha256', 'config' => $config]);
+        $signed = $csr === false ? false : openssl_csr_sign($csr, null, $key, 1, ['digest_alg' => 'sha256', 'config' => $config]);
+        $exported = $signed !== false && openssl_pkey_export($key, $private, null, ['config' => $config]) && openssl_x509_export($signed, $public);
+        if ($exported !== true) {
+            throw new RuntimeException('openssl failed');
+        }
+        file_put_contents(self::$key, $private);
+        file_put_contents(self::$cert, $public);
     }
 
     protected function tearDown(): void

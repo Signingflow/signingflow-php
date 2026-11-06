@@ -20,6 +20,7 @@ jobs:
           extensions: curl, ffi
       - run: composer update --no-interaction --prefer-dist
       - run: |
+          set -o pipefail
           XDEBUG_MODE=coverage php -d memory_limit=1G -d ffi.enable=true vendor/bin/phpunit --coverage-text | tee coverage.txt
           php -r '
           $text = file_get_contents("coverage.txt");
