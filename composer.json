@@ -1,6 +1,6 @@
 {
   "name": "signingflow/signingflow",
-  "description": "Official PHP SDK for the Signingflow operations used by skills and MCP tools.",
+  "description": "Official PHP SDK for sending a document, reading envelope status, and verifying webhooks with the Signingflow API.",
   "type": "library",
   "license": "MIT",
   "require": {
