@@ -1,6 +1,5 @@
 /vendor/
 .phpunit.cache/
 .phpunit.result.cache
-composer.lock
 coverage.txt
 coverage.xml

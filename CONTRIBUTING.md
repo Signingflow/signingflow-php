@@ -7,7 +7,7 @@ Open an issue before a large change. This SDK stays limited to the send, status,
 PHP 8.3 or newer, with the curl and json extensions is required.
 
 ```bash
-composer update --no-interaction --prefer-dist
+composer install --no-interaction --prefer-dist --no-scripts
 vendor/bin/phpunit
 ```
 
