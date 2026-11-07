@@ -37,7 +37,7 @@ jobs:
               exit(1);
           }
           echo "lines {$lines[1]}% branches {$branches[1]}%\n";
-          file_put_contents(".coverage-percent", $lines[1]);
+          file_put_contents("coverage-percent.txt", $lines[1]);
           if ((float) $lines[1] < 80 || (float) $branches[1] < 80) {
               exit(1);
           }
@@ -46,7 +46,7 @@ jobs:
         if: github.event_name == 'push' && github.ref == 'refs/heads/main' && matrix.php == '8.3'
         with:
           name: coverage-percent
-          path: .coverage-percent
+          path: coverage-percent.txt
           retention-days: 1
 
   badge:
@@ -63,4 +63,4 @@ jobs:
           name: coverage-percent
       - env:
           GITHUB_TOKEN: ${{ github.token }}
-        run: bash .github/publish-coverage-badge.sh "$(cat .coverage-percent)"
+        run: bash .github/publish-coverage-badge.sh "$(cat coverage-percent.txt)"
